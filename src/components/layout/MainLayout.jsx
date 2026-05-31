@@ -4,7 +4,7 @@ import Topbar from "./Topbar";
 
 function MainLayout({ children }) {
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", overflow: "hidden" }}>
       <Sidebar />
       <Box
         sx={{
@@ -13,6 +13,7 @@ function MainLayout({ children }) {
           padding: 3,
           flex: 1,
           minHeight: "100vh",
+          minWidth: 0,          // prevents flex child from overflowing its container
           backgroundColor: "#f0f2f5",
         }}
       >
