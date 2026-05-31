@@ -4,27 +4,33 @@ import {
   DialogContent, DialogActions, TextField, FormControl,
   InputLabel, Select, MenuItem, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, CircularProgress,
+  Alert, Tabs, Tab,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MainLayout from "../../components/layout/MainLayout";
 import { useAuth } from "../../context/AuthContext";
-import { getBookingsAPI, createBookingAPI, getAvailableRoomsAPI, approveBookingAPI, cancelBookingAPI, checkInAPI, checkOutAPI } from "../../api/api";
+import {
+  getBookingsAPI, createBookingAPI, approveBookingAPI, cancelBookingAPI,
+  checkInAPI, checkOutAPI, markMaintenanceAPI, markAvailableAPI
+} from "../../api/api";
 
 const statusColor = {
-  Pending: { bg: "#fff3e0", color: "#e65100" },
-  Approved: { bg: "#e8f5e9", color: "#2e7d32" },
-  Confirmed: { bg: "#e8f5e9", color: "#2e7d32" },
-  CheckedIn: { bg: "#e3f2fd", color: "#1565c0" },
+  Pending:    { bg: "#fff3e0", color: "#e65100" },
+  Approved:   { bg: "#e8f5e9", color: "#2e7d32" },
+  Confirmed:  { bg: "#e8f5e9", color: "#2e7d32" },
+  CheckedIn:  { bg: "#e3f2fd", color: "#1565c0" },
   CheckedOut: { bg: "#f3e5f5", color: "#6a1b9a" },
-  Cancelled: { bg: "#ffebee", color: "#c62828" },
+  Cancelled:  { bg: "#ffebee", color: "#c62828" },
 };
 
 function Bookings() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
-  const [availableRooms, setAvailableRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [openAdd, setOpenAdd] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [tab, setTab] = useState(0);
   const [newBooking, setNewBooking] = useState({
     roomType: "Single",
     checkInDate: "",
@@ -35,7 +41,6 @@ function Bookings() {
 
   useEffect(() => {
     fetchBookings();
-    fetchAvailableRooms();
   }, []);
 
   const fetchBookings = async () => {
@@ -49,17 +54,14 @@ function Bookings() {
     }
   };
 
-  const fetchAvailableRooms = async () => {
-    try {
-      const res = await getAvailableRoomsAPI();
-      setAvailableRooms(res.data);
-    } catch (error) {
-      console.error("Error fetching rooms:", error);
-    }
-  };
-
   const handleCreateBooking = async () => {
-    if (!newBooking.checkInDate || !newBooking.checkOutDate) return;
+    if (!newBooking.checkInDate || !newBooking.checkOutDate) {
+      setBookingError("Please select check-in and check-out dates.");
+      return;
+    }
+    if (submitting) return;
+    setSubmitting(true);
+    setBookingError("");
     try {
       const payload = {
         userId: user?.userId,
@@ -67,27 +69,57 @@ function Bookings() {
         checkInDate: new Date(newBooking.checkInDate).toISOString(),
         checkOutDate: new Date(newBooking.checkOutDate).toISOString(),
       };
-      console.log("Booking payload:", payload);
       await createBookingAPI(payload);
       setOpenAdd(false);
       setNewBooking({ roomType: "Single", checkInDate: "", checkOutDate: "" });
       fetchBookings();
     } catch (error) {
-      console.error("Error creating booking:", error.response?.data);
+      const msg = error.response?.data;
+      setBookingError(
+        typeof msg === "string" ? msg : "No available rooms for the selected dates and room type."
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleAction = async (action, id) => {
     try {
+      const booking = bookings.find(b => b.bookingId === id);
+      const roomId = booking?.room?.roomId;
+
       if (action === "approve") await approveBookingAPI(id);
-      if (action === "checkin") await checkInAPI(id);
-      if (action === "checkout") await checkOutAPI(id);
-      if (action === "cancel") await cancelBookingAPI(id);
+      if (action === "checkin") {
+        await checkInAPI(id);
+        if (roomId) await markMaintenanceAPI(roomId).catch(() => {});
+      }
+      if (action === "checkout") {
+        await checkOutAPI(id);
+        if (roomId) await markAvailableAPI(roomId).catch(() => {});
+      }
+      if (action === "cancel") {
+        await cancelBookingAPI(id);
+        if (roomId) await markAvailableAPI(roomId).catch(() => {});
+      }
       fetchBookings();
     } catch (error) {
       console.error("Error:", error);
     }
   };
+
+  const handleClose = () => {
+    if (submitting) return;
+    setOpenAdd(false);
+    setBookingError("");
+    setNewBooking({ roomType: "Single", checkInDate: "", checkOutDate: "" });
+  };
+
+  const filteredBookings = bookings.filter(b => {
+    if (tab === 0) return true; // All
+    if (tab === 1) return ["Pending", "Approved", "CheckedIn"].includes(b.status); // Active
+    if (tab === 2) return ["CheckedOut", "Cancelled"].includes(b.status); // Completed
+    return true;
+  });
 
   if (loading) {
     return (
@@ -106,7 +138,7 @@ function Bookings() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setOpenAdd(true)}
+            onClick={() => { setOpenAdd(true); setBookingError(""); }}
             sx={{ backgroundColor: "#1a1a2e" }}
           >
             New Booking
@@ -115,6 +147,13 @@ function Bookings() {
       </Box>
 
       <Card sx={{ borderRadius: 3, boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
+        <Box sx={{ borderBottom: "1px solid #e0e0e0", px: 2 }}>
+          <Tabs value={tab} onChange={(e, v) => setTab(v)}>
+            <Tab label={`All (${bookings.length})`} />
+            <Tab label={`Active (${bookings.filter(b => ["Pending","Approved","CheckedIn"].includes(b.status)).length})`} />
+            <Tab label={`Completed (${bookings.filter(b => ["CheckedOut","Cancelled"].includes(b.status)).length})`} />
+          </Tabs>
+        </Box>
         <CardContent>
           <TableContainer component={Paper} elevation={0}>
             <Table>
@@ -130,14 +169,14 @@ function Bookings() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {bookings.length === 0 ? (
+                {filteredBookings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary" }}>
                       No bookings found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  bookings.map((booking) => (
+                  filteredBookings.map((booking) => (
                     <TableRow key={booking.bookingId} hover>
                       <TableCell>{booking.bookingId}</TableCell>
                       <TableCell>{booking.user?.fullName}</TableCell>
@@ -145,14 +184,12 @@ function Bookings() {
                       <TableCell>{booking.checkInDate?.split("T")[0]}</TableCell>
                       <TableCell>{booking.checkOutDate?.split("T")[0]}</TableCell>
                       <TableCell>
-                        <Box
-                          sx={{
-                            display: "inline-block",
-                            backgroundColor: statusColor[booking.status]?.bg || "#f5f5f5",
-                            color: statusColor[booking.status]?.color || "#333",
-                            px: 1.5, py: 0.3, borderRadius: 5, fontSize: 12, fontWeight: 600,
-                          }}
-                        >
+                        <Box sx={{
+                          display: "inline-block",
+                          backgroundColor: statusColor[booking.status]?.bg || "#f5f5f5",
+                          color: statusColor[booking.status]?.color || "#333",
+                          px: 1.5, py: 0.3, borderRadius: 5, fontSize: 12, fontWeight: 600,
+                        }}>
                           {booking.status?.toUpperCase()}
                         </Box>
                       </TableCell>
@@ -193,9 +230,14 @@ function Bookings() {
         </CardContent>
       </Card>
 
-      <Dialog open={openAdd} onClose={() => setOpenAdd(false)} maxWidth="xs" fullWidth>
+      <Dialog open={openAdd} onClose={handleClose} maxWidth="xs" fullWidth>
         <DialogTitle fontWeight="bold">New Booking</DialogTitle>
         <DialogContent>
+          {bookingError && (
+            <Alert severity="error" sx={{ mb: 2, mt: 1 }}>
+              {bookingError}
+            </Alert>
+          )}
           <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
             <InputLabel>Room Type</InputLabel>
             <Select
@@ -224,9 +266,14 @@ function Bookings() {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setOpenAdd(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateBooking} sx={{ backgroundColor: "#1a1a2e" }}>
-            Confirm Booking
+          <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleCreateBooking}
+            disabled={submitting}
+            sx={{ backgroundColor: "#1a1a2e" }}
+          >
+            {submitting ? "Booking..." : "Confirm Booking"}
           </Button>
         </DialogActions>
       </Dialog>

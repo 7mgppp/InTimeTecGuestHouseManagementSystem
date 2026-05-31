@@ -2,7 +2,9 @@ import { Box, Typography, IconButton, Badge } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useAuth } from "../../context/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getBookingsAPI, getMaintenanceAPI } from "../../api/api";
 
 const pageTitles = {
   "/dashboard": "Dashboard",
@@ -13,12 +15,40 @@ const pageTitles = {
   "/reports": "Reports",
   "/notifications": "Notifications",
   "/settings": "Settings",
+  "/guest/stay": "My Stay",
 };
 
 function Topbar() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const title = pageTitles[location.pathname] || "Guest House";
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user?.roleId !== 5) {
+      fetchUnreadCount();
+    }
+  }, [location.pathname]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const readIds = new Set(JSON.parse(localStorage.getItem("gh_read_notifs") || "[]"));
+      const [bookingsRes, maintRes] = await Promise.all([
+        getBookingsAPI(),
+        getMaintenanceAPI(),
+      ]);
+      const unreadBookings = bookingsRes.data.filter(
+        (b) => !readIds.has(`booking-${b.bookingId}`)
+      ).length;
+      const unreadMaint = maintRes.data.filter(
+        (m) => !readIds.has(`maint-${m.maintenanceId}`)
+      ).length;
+      setUnreadCount(unreadBookings + unreadMaint);
+    } catch {
+      setUnreadCount(0);
+    }
+  };
 
   return (
     <Box
@@ -42,11 +72,14 @@ function Topbar() {
       </Typography>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <IconButton>
-          <Badge badgeContent={3} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
+        {/* Hide notification bell for Guest */}
+        {user?.roleId !== 5 && (
+          <IconButton onClick={() => navigate("/notifications")}>
+            <Badge badgeContent={unreadCount} color="error">
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+        )}
         <IconButton>
           <AccountCircleIcon />
         </IconButton>

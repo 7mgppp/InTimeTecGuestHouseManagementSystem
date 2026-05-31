@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import {
-  Box, Card, CardContent, Typography, Button, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, FormControl, InputLabel,
-  Select, MenuItem, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, CircularProgress,
+  Box, Card, CardContent, Button, Dialog, DialogTitle,
+  DialogContent, DialogActions, TextField, FormControl,
+  InputLabel, Select, MenuItem, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Paper, CircularProgress,
+  Tabs, Tab,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MainLayout from "../../components/layout/MainLayout";
 import { useAuth } from "../../context/AuthContext";
-import { getMaintenanceAPI, createMaintenanceAPI, completeMaintenanceAPI } from "../../api/api";
-import { getRoomsAPI } from "../../api/api";
+import { getMaintenanceAPI, createMaintenanceAPI, completeMaintenanceAPI, getRoomsAPI } from "../../api/api";
 
 function Maintenance() {
   const { user } = useAuth();
@@ -17,6 +17,7 @@ function Maintenance() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
+  const [tab, setTab] = useState(0);
   const [newRequest, setNewRequest] = useState({ roomId: "", reason: "" });
 
   const canAdd = [1, 2, 3, 4].includes(user?.roleId);
@@ -72,6 +73,13 @@ function Maintenance() {
     }
   };
 
+  const filteredRequests = requests.filter(r => {
+    if (tab === 0) return true;
+    if (tab === 1) return r.status === "Open";
+    if (tab === 2) return r.status === "Completed";
+    return true;
+  });
+
   if (loading) {
     return (
       <MainLayout>
@@ -98,6 +106,13 @@ function Maintenance() {
       </Box>
 
       <Card sx={{ borderRadius: 3, boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
+        <Box sx={{ borderBottom: "1px solid #e0e0e0", px: 2 }}>
+          <Tabs value={tab} onChange={(e, v) => setTab(v)}>
+            <Tab label={`All (${requests.length})`} />
+            <Tab label={`Open (${requests.filter(r => r.status === "Open").length})`} />
+            <Tab label={`Completed (${requests.filter(r => r.status === "Completed").length})`} />
+          </Tabs>
+        </Box>
         <CardContent>
           <TableContainer component={Paper} elevation={0}>
             <Table>
@@ -113,28 +128,26 @@ function Maintenance() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {requests.length === 0 ? (
+                {filteredRequests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary" }}>
                       No maintenance requests
                     </TableCell>
                   </TableRow>
                 ) : (
-                  requests.map((req) => (
+                  filteredRequests.map((req) => (
                     <TableRow key={req.maintenanceId} hover>
                       <TableCell>{req.maintenanceId}</TableCell>
                       <TableCell>Room {req.roomNumber}</TableCell>
                       <TableCell>{req.reportedBy}</TableCell>
                       <TableCell>{req.reason}</TableCell>
                       <TableCell>
-                        <Box
-                          sx={{
-                            display: "inline-block",
-                            backgroundColor: req.status === "Completed" ? "#e8f5e9" : "#fff3e0",
-                            color: req.status === "Completed" ? "#2e7d32" : "#e65100",
-                            px: 1.5, py: 0.3, borderRadius: 5, fontSize: 12, fontWeight: 600,
-                          }}
-                        >
+                        <Box sx={{
+                          display: "inline-block",
+                          backgroundColor: req.status === "Completed" ? "#e8f5e9" : "#fff3e0",
+                          color: req.status === "Completed" ? "#2e7d32" : "#e65100",
+                          px: 1.5, py: 0.3, borderRadius: 5, fontSize: 12, fontWeight: 600,
+                        }}>
                           {req.status?.toUpperCase()}
                         </Box>
                       </TableCell>

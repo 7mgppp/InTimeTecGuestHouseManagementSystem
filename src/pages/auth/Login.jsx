@@ -17,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 const roles = [
   { roleId: 1, roleName: "Admin" },
   { roleId: 2, roleName: "Management" },
-  { roleId: 3, roleName: "Security" },
   { roleId: 4, roleName: "Staff" },
   { roleId: 5, roleName: "Guest" },
 ];
@@ -44,16 +43,12 @@ function Login() {
       setError("Please enter your Employee ID");
       return;
     }
-
     setLoading(true);
     setError("");
-
     const result = await login(email, password, selectedRoleId, employeeId);
-
     setLoading(false);
-
     if (result.success) {
-      if (result.roleId === 5) navigate("/guest/bookings");
+      if (result.roleId === 5) navigate("/guest/stay");
       else navigate("/dashboard");
     } else {
       setError(typeof result.message === "string" ? result.message : "Invalid credentials");
@@ -79,12 +74,15 @@ function Login() {
             boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
           }}
         >
-          <Typography variant="h5" fontWeight="bold" textAlign="center" mb={1}>
-            🏨 Guest House
-          </Typography>
-          <Typography variant="body2" textAlign="center" color="text.secondary" mb={3}>
-            Sign in to your account
-          </Typography>
+          {/* Header */}
+          <Box sx={{ textAlign: "center", mb: 4 }}>
+            <Typography variant="h5" fontWeight="bold" mb={1}>
+               Guest House
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Sign in to your account
+            </Typography>
+          </Box>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -92,52 +90,62 @@ function Login() {
             </Alert>
           )}
 
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Select Role</InputLabel>
-            <Select
-              value={selectedRoleId}
-              label="Select Role"
-              onChange={(e) => {
-                setSelectedRoleId(e.target.value);
-                setError("");
-                setEmployeeId("");
-              }}
-            >
-              {roles.map((role) => (
-                <MenuItem key={role.roleId} value={role.roleId}>
-                  {role.roleName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Role */}
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth>
+              <InputLabel id="role-label">Select Role</InputLabel>
+              <Select
+                labelId="role-label"
+                value={selectedRoleId}
+                label="Select Role"
+                onChange={(e) => {
+                  setSelectedRoleId(e.target.value);
+                  setError("");
+                  setEmployeeId("");
+                }}
+              >
+                {roles.map((role) => (
+                  <MenuItem key={role.roleId} value={role.roleId}>
+                    {role.roleName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
 
+          {/* Employee ID */}
           {selectedRoleId && !isGuest && (
-            <TextField
-              fullWidth
-              label="Employee ID"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              sx={{ mb: 2 }}
-            />
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                fullWidth
+                label="Employee ID"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+              />
+            </Box>
           )}
 
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={{ mb: 2 }}
-          />
+          {/* Email */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </Box>
 
-          <TextField
-            fullWidth
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 2 }}
-          />
+          {/* Password */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Box>
 
           <Button
             fullWidth
@@ -145,7 +153,7 @@ function Login() {
             size="large"
             onClick={handleLogin}
             disabled={loading}
-            sx={{ mt: 1, backgroundColor: "#1a1a2e" }}
+            sx={{ backgroundColor: "#1a1a2e" }}
           >
             {loading ? "Signing in..." : "Login"}
           </Button>

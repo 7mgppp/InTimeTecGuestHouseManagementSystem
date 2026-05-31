@@ -8,11 +8,15 @@ import Reports from "./pages/reports/Reports";
 import Notifications from "./pages/notifications/Notifications";
 import Settings from "./pages/settings/Settings";
 import Maintenance from "./pages/maintenance/Maintenance";
+import GuestStay from "./pages/guest/GuestStay";
 import { useAuth } from "./context/AuthContext";
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" />;
+  if (allowedRoles && !allowedRoles.includes(user.roleId)) {
+    return <Navigate to="/login" />;
+  }
   return children;
 }
 
@@ -21,14 +25,19 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
-      <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-      <Route path="/guests" element={<ProtectedRoute><Guests /></ProtectedRoute>} />
-      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
+
+      {/* Staff routes */}
+      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[1,2,4]}><Dashboard /></ProtectedRoute>} />
+      <Route path="/rooms" element={<ProtectedRoute allowedRoles={[1,2,4]}><Rooms /></ProtectedRoute>} />
+      <Route path="/bookings" element={<ProtectedRoute allowedRoles={[1,2,4]}><Bookings /></ProtectedRoute>} />
+      <Route path="/guests" element={<ProtectedRoute allowedRoles={[1,2,4]}><Guests /></ProtectedRoute>} />
+      <Route path="/maintenance" element={<ProtectedRoute allowedRoles={[1,2,4]}><Maintenance /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute allowedRoles={[1,2]}><Reports /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute allowedRoles={[1,2,4]}><Notifications /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute allowedRoles={[1]}><Settings /></ProtectedRoute>} />
+
+      {/* Guest route */}
+      <Route path="/guest/stay" element={<ProtectedRoute allowedRoles={[5]}><GuestStay /></ProtectedRoute>} />
     </Routes>
   );
 }

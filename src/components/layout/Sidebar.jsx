@@ -21,14 +21,15 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import BuildIcon from "@mui/icons-material/Build";
 
 const allNavItems = [
-  { label: "Dashboard", icon: <DashboardIcon />, path: "/dashboard", roles: [1, 2, 3, 4] },
-  { label: "Rooms", icon: <MeetingRoomIcon />, path: "/rooms", roles: [1, 2, 3, 4] },
-  { label: "Bookings", icon: <CalendarMonthIcon />, path: "/bookings", roles: [1, 2, 3, 4] },
+  { label: "Dashboard", icon: <DashboardIcon />, path: "/dashboard", roles: [1, 2, 4] },
+  { label: "Rooms", icon: <MeetingRoomIcon />, path: "/rooms", roles: [1, 2, 4] },
+  { label: "Bookings", icon: <CalendarMonthIcon />, path: "/bookings", roles: [1, 2, 4] },
   { label: "Guests", icon: <PeopleIcon />, path: "/guests", roles: [1, 2, 4] },
-  { label: "Maintenance", icon: <BuildIcon />, path: "/maintenance", roles: [1, 2, 3, 4] },
+  { label: "Maintenance", icon: <BuildIcon />, path: "/maintenance", roles: [1, 2, 4] },
   { label: "Reports", icon: <AssessmentIcon />, path: "/reports", roles: [1, 2] },
-  { label: "Notifications", icon: <NotificationsIcon />, path: "/notifications", roles: [1, 2, 3, 4] },
+  { label: "Notifications", icon: <NotificationsIcon />, path: "/notifications", roles: [1, 2, 4] },
   { label: "Settings", icon: <SettingsIcon />, path: "/settings", roles: [1] },
+  { label: "My Stay", icon: <CalendarMonthIcon />, path: "/guest/stay", roles: [5] },
 ];
 
 function Sidebar() {
@@ -61,7 +62,7 @@ function Sidebar() {
     >
       <Box sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight="bold" color="#fff">
-          🏨 Guest House
+          Guest House
         </Typography>
         <Typography variant="caption" color="rgba(255,255,255,0.5)">
           {user?.fullName}

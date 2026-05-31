@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import {
   Box, Card, CardContent, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, CircularProgress, Typography,
+  TableContainer, TableHead, TableRow, Paper, CircularProgress,
+  TextField, MenuItem, Select, FormControl, InputLabel, InputAdornment,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import MainLayout from "../../components/layout/MainLayout";
 import { useAuth } from "../../context/AuthContext";
 import { getBookingsAPI, checkInAPI, checkOutAPI } from "../../api/api";
@@ -11,6 +13,11 @@ function Guests() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Filter state
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [roomFilter, setRoomFilter] = useState("All");
 
   useEffect(() => {
     fetchGuests();
@@ -37,6 +44,20 @@ function Guests() {
     }
   };
 
+  // Unique room options from data
+  const roomOptions = ["All", ...new Set(bookings.map(b => b.room?.roomNumber).filter(Boolean).sort())];
+  const statusOptions = ["All", "Approved", "CheckedIn"];
+
+  // Apply filters
+  const filtered = bookings.filter(b => {
+    const name = b.user?.fullName?.toLowerCase() || "";
+    const email = b.user?.email?.toLowerCase() || "";
+    const matchesSearch = !search || name.includes(search.toLowerCase()) || email.includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "All" || b.status === statusFilter;
+    const matchesRoom = roomFilter === "All" || b.room?.roomNumber === roomFilter;
+    return matchesSearch && matchesStatus && matchesRoom;
+  });
+
   if (loading) {
     return (
       <MainLayout>
@@ -51,6 +72,37 @@ function Guests() {
     <MainLayout>
       <Card sx={{ borderRadius: 3, boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
         <CardContent>
+
+          {/* Search + Filter bar */}
+          <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+            <TextField
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              size="small"
+              sx={{ flex: 1, minWidth: 200 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Status</InputLabel>
+              <Select value={statusFilter} label="Status" onChange={e => setStatusFilter(e.target.value)}>
+                {statusOptions.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Room</InputLabel>
+              <Select value={roomFilter} label="Room" onChange={e => setRoomFilter(e.target.value)}>
+                {roomOptions.map(r => <MenuItem key={r} value={r}>{r === "All" ? "All Rooms" : `Room ${r}`}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
+
           <TableContainer component={Paper} elevation={0}>
             <Table>
               <TableHead>
@@ -66,14 +118,14 @@ function Guests() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {bookings.length === 0 ? (
+                {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
                       No guests found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  bookings.map((booking) => (
+                  filtered.map((booking) => (
                     <TableRow key={booking.bookingId} hover>
                       <TableCell>{booking.bookingId}</TableCell>
                       <TableCell>{booking.user?.fullName}</TableCell>
@@ -113,6 +165,7 @@ function Guests() {
               </TableBody>
             </Table>
           </TableContainer>
+
         </CardContent>
       </Card>
     </MainLayout>
