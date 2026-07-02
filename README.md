@@ -235,9 +235,9 @@ http://localhost:5173
 
 # Author
 
-**Mehul Garg**
+**Miilee Sharma**
 
-GitHub: https://github.com/Mehulllll-pixel
+GitHub: https://github.com/7mgppp
 
 ---
 
