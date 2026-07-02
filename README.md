@@ -1,6 +1,6 @@
 # Guest House Management System
 
-A full-stack Guest House Management System built with **ASP.NET Core (.NET 10), React, Entity Framework Core, and SQL Server** to streamline room booking, guest management, maintenance tracking, and administrative operations.
+A full-stack Guest House Management System built with **ASP.NET Core (.NET 10), React, Entity Framework Core, and SQL Server** to streamline room booking, guest management, maintenance tracking, and administrative operations. This was made as a Demo Project to get comfortable with the technologies at the start of internship
 
 ---
 
